@@ -1,233 +1,212 @@
-import React, { useState, useEffect } from 'react';
-
+import React, { useState } from 'react';
 export default function AgendaDashboard() {
-  const [googleEvents, setGoogleEvents] = useState([]);
-  const [outlookEvents, setOutlookEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState([
+    { id: 1, title: 'Revisión PH Dupont Tower - Nathaly', date: '2026-04-17', time: '09:00', priority: 'high', completed: false, calendar: 'mikaty', source: 'Outlook' },
+    { id: 2, title: 'Reunión con Charlie - Bonavista', date: '2026-04-17', time: '10:00', priority: 'high', completed: false, calendar: 'bonavista', source: 'Google' },
+    { id: 3, title: 'Administración Inversiones Mikaty', date: '2026-04-17', time: '13:00', priority: 'medium', completed: false, calendar: 'mikaty', source: 'Outlook' },
+    { id: 4, title: 'Llamada Héctor', date: '2026-04-17', time: '14:00', priority: 'high', completed: false, calendar: 'bonavista', source: 'Google' },
+  ]);
+  const [formData, setFormData] = useState({ title: '', date: '', time: '', priority: 'medium', calendar: 'bonavista' });
   const [filter, setFilter] = useState('all');
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const initializeCalendars = async () => {
-      try {
-        // These credentials will be set as environment variables in Vercel
-        const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-        const microsoftClientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
-        const microsoftTenantId = process.env.REACT_APP_MICROSOFT_TENANT_ID;
-
-        // Initialize Google Calendar
-        if (googleClientId) {
-          await initializeGoogleCalendar(googleClientId);
-        }
-
-        // Initialize Microsoft Graph
-        if (microsoftClientId && microsoftTenantId) {
-          await initializeMicrosoftCalendar(microsoftClientId, microsoftTenantId);
-        }
-
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
-    initializeCalendars();
-  }, []);
-
-  const initializeGoogleCalendar = async (clientId) => {
-    try {
-      // Google Calendar API initialization
-      // In production, this will be handled by OAuth flow on Vercel
-      const mockGoogleEvents = [
-        {
-          id: '1',
-          title: 'Reunión con Charlie - Bonavista',
-          start: new Date(new Date().setHours(10, 0)),
-          end: new Date(new Date().setHours(11, 0)),
-          calendar: 'bonavista',
-          description: 'Estrategia de marketing Más razones para elegir Bonavista'
-        },
-        {
-          id: '2',
-          title: 'Llamada Héctor - Proyecto Terreno+Construcción',
-          start: new Date(new Date().setHours(14, 0)),
-          end: new Date(new Date().setHours(15, 0)),
-          calendar: 'bonavista',
-          description: 'Revisión de avance lotes D2-D9'
-        },
-        {
-          id: '3',
-          title: 'Seguimiento leads USA diaspora',
-          start: new Date(new Date().setHours(16, 30)),
-          end: new Date(new Date().setHours(17, 30)),
-          calendar: 'bonavista',
-          description: 'Francisco/California, Guillermo/local'
-        }
-      ];
-      setGoogleEvents(mockGoogleEvents);
-    } catch (err) {
-      console.error('Google Calendar error:', err);
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (formData.title && formData.date && formData.time) {
+      setTasks([...tasks, { id: Date.now(), ...formData, completed: false, source: 'Manual' }]);
+      setFormData({ title: '', date: '', time: '', priority: 'medium', calendar: 'bonavista' });
     }
   };
-
-  const initializeMicrosoftCalendar = async (clientId, tenantId) => {
-    try {
-      // Microsoft Graph API initialization
-      const mockOutlookEvents = [
-        {
-          id: 'o1',
-          title: 'Revisión PH Dupont Tower - Nathaly',
-          start: new Date(new Date().setHours(9, 0)),
-          end: new Date(new Date().setHours(10, 0)),
-          calendar: 'mikaty',
-          description: 'Admin - Renovación Inmobiliaria Andy, S.A.'
-        },
-        {
-          id: 'o2',
-          title: 'Administración Inversiones Mikaty',
-          start: new Date(new Date().setHours(13, 0)),
-          end: new Date(new Date().setHours(14, 30)),
-          calendar: 'mikaty',
-          description: 'Condo management - Panama'
-        },
-        {
-          id: 'o3',
-          title: 'Solicitud Junta Técnica de Bienes Raíces',
-          start: new Date(new Date().setHours(15, 0)),
-          end: new Date(new Date().setHours(16, 0)),
-          calendar: 'mikaty',
-          description: 'Seguimiento puntuación exam 67/100'
-        }
-      ];
-      setOutlookEvents(mockOutlookEvents);
-    } catch (err) {
-      console.error('Microsoft Graph error:', err);
-    }
-  };
-
-  const allEvents = [...googleEvents, ...outlookEvents]
-    .filter(event => filter === 'all' || event.calendar === filter)
-    .sort((a, b) => a.start - b.start);
-
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
+  const toggleTask = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
+  const filteredTasks = tasks.filter(t => filter === 'all' || t.calendar === filter);
+  const completedCount = filteredTasks.filter(t => t.completed).length;
+  const totalCount = filteredTasks.length;
+  const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem 1rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '500', margin: '0 0 1.5rem 0', color: 'var(--color-text-primary)' }}>
-          Tu Agenda Diaria
-        </h1>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          {[
-            { id: 'all', label: 'Todos' },
-            { id: 'bonavista', label: 'Bonavista' },
-            { id: 'mikaty', label: 'Mikaty' }
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              style={{
-                padding: '6px 12px',
-                border: `0.5px solid ${filter === f.id ? 'var(--color-border-secondary)' : 'var(--color-border-tertiary)'}`,
-                borderRadius: 'var(--border-radius-md)',
-                background: filter === f.id ? 'var(--color-background-secondary)' : 'transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: 'var(--color-text-primary)',
-                fontWeight: filter === f.id ? '500' : '400',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', fontFamily: 'system-ui' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '1rem', color: '#333' }}>Tu Agenda Diaria</h1>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '2rem' }}>
+        {['all', 'bonavista', 'mikaty'].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: '10px 20px', borderRadius: '20px', background: filter === f ? '#e8dff5' : '#fff', border: `2px solid ${filter === f ? '#b8a6ff' : '#e8dff5'}`, color: filter === f ? '#6b5b95' : '#888', cursor: 'pointer', fontWeight: '600' }}>
+            {f === 'all' ? 'Todas' : f === 'bonavista' ? 'Bonavista' : 'Mikaty'}
+          </button>
+        ))}
+      </div>
+      <div style={{ background: 'linear-gradient(135deg, #f0e6ff 0%, #ede5ff 100%)', borderRadius: '28px', padding: '2.5rem', marginBottom: '2.5rem', border: '2px solid #e0d0ff' }}>
+        <h2 style={{ fontSize: '22px', marginBottom: '1.5rem', color: '#6b5b95', fontWeight: '700' }}>➕ Agregar Nueva Tarea</h2>
+        <form onSubmit={handleAddTask} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '14px', alignItems: 'flex-end' }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Tarea</label>
+            <input type="text" placeholder="¿Qué necesitas hacer?" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', padding: '14px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Fecha</label>
+            <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Hora</label>
+            <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <button type="submit" style={{ padding: '12px 28px', background: '#c4b5e9', color: '#6b5b95', border: 'none', borderRadius: '14px', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>Agregar</button>
+        </form>
+        <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })} style={{ padding: '10px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '13px', background: '#fff' }}>
+            <option value="low">Prioridad: Baja</option>
+            <option value="medium">Prioridad: Media</option>
+            <option value="high">Prioridad: Alta</option>
+          </select>
+          <select value={formData.calendar} onChange={(e) => setFormData({ ...formData, calendar: e.target.value })} style={{ padding: '10px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '13px', background: '#fff' }}>
+            <option value="bonavista">Línea: Bonavista</option>
+            <option value="mikaty">Línea: Mikaty</option>
+          </select>
         </div>
-
-        {loading && (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-            Cargando calendarios...
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ background: '#f0e6ff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e0d0ff' }}>
+          <p style={{ fontSize: '13px', color: '#8b7ba8', margin: '0 0 8px 0', fontWeight: '600' }}>Cumplimiento Hoy</p>
+          <div style={{ fontSize: '40px', fontWeight: 'bold', color: '#8b7ba8', marginBottom: '10px' }}>{completionPercent}%</div>
+          <div style={{ background: '#ddd0f0', height: '8px', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ background: '#c4b5e9', height: '100%', width: `${completionPercent}%` }} />
           </div>
-        )}
-
-        {error && (
-          <div style={{ padding: '1rem', background: 'var(--color-background-danger)', borderRadius: 'var(--border-radius-md)', color: 'var(--color-text-danger)', marginBottom: '1.5rem' }}>
-            Error: {error}
+        </div>
+        <div style={{ background: '#ffe6d5', borderRadius: '20px', padding: '1.5rem', border: '1px solid #ffd4c0' }}>
+          <p style={{ fontSize: '13px', color: '#c97d5c', margin: '0 0 8px 0', fontWeight: '600' }}>Tareas Atrasadas</p>
+          <div style={{ fontSize: '40px', fontWeight: 'bold', color: '#d4825a', marginBottom: '10px' }}>0</div>
+          <p style={{ fontSize: '12px', color: '#c97d5c', margin: '0' }}>Requieren atención</p>
+        </div>
+        <div style={{ background: '#d5f0e8', borderRadius: '20px', padding: '1.5rem', border: '1px solid #c5e8e0' }}>
+          <p style={{ fontSize: '13px', color: '#6b9d88', margin: '0 0 12px 0', fontWeight: '600' }}>Distribución</p>
+          <div style={{ fontSize: '13px', color: '#6b9d88' }}>
+            <div>🔴 Alta: <strong>{tasks.filter(t => t.priority === 'high').length}</strong></div>
+            <div>🟠 Media: <strong>{tasks.filter(t => t.priority === 'medium').length}</strong></div>
+            <div>🟢 Baja: <strong>{tasks.filter(t => t.priority === 'low').length}</strong></div>
           </div>
-        )}
-
-        <div style={{ marginBottom: '1.5rem' }}>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 1rem 0' }}>
-            {formatDate(new Date())}
-          </p>
-          {allEvents.length === 0 ? (
-            <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>No hay eventos para hoy.</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {allEvents.map(event => (
-                <div
-                  key={event.id}
-                  style={{
-                    background: 'var(--color-background-primary)',
-                    border: `0.5px solid ${event.calendar === 'bonavista' ? 'var(--color-border-info)' : 'var(--color-border-secondary)'}`,
-                    borderLeft: `4px solid ${event.calendar === 'bonavista' ? '#4285F4' : '#0078D4'}`,
-                    borderRadius: 'var(--border-radius-md)',
-                    padding: '0.75rem 1rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-background-secondary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-background-primary)'}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <p style={{ fontSize: '14px', fontWeight: '500', margin: '0', color: 'var(--color-text-primary)' }}>
-                      {event.title}
-                    </p>
-                    <span style={{
-                      fontSize: '11px',
-                      padding: '2px 6px',
-                      background: event.calendar === 'bonavista' ? 'var(--color-background-info)' : 'var(--color-background-secondary)',
-                      color: event.calendar === 'bonavista' ? 'var(--color-text-info)' : 'var(--color-text-secondary)',
-                      borderRadius: '3px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {event.calendar === 'bonavista' ? 'Google' : 'Outlook'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--color-text-secondary)' }}>
-                      {formatTime(event.start)} - {formatTime(event.end)}
-                    </span>
-                  </div>
-                  {event.description && (
-                    <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', margin: '0', marginTop: '4px' }}>
-                      {event.description}
-                    </p>
-                  )}
-                </div>
-              ))}
+        </div>
+      </div>
+      <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '1.5rem', color: '#333', fontWeight: '700' }}>📅 Tareas & Eventos ({filteredTasks.length})</h2>
+        {filteredTasks.length === 0 ? (
+          <p style={{ color: '#aaa', textAlign: 'center', padding: '3rem', fontSize: '15px' }}>Sin tareas para hoy. ¡Agrega una arriba! ⬆️</p>
+        ) : (
+          filteredTasks.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)).map(task => (
+            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: task.completed ? '#f5f5f5' : '#faf8fc', border: `2px solid ${task.source === 'Google' ? '#e8d5ff' : task.source === 'Outlook' ? '#ffe8d5' : '#e8f0ff'}`, borderRadius: '16px', marginBottom: '12px', opacity: task.completed ? 0.65 : 1 }}>
+              <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: '0', fontSize: '15px', fontWeight: '600', color: '#333', textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#888' }}>🕐 {task.time}</p>
+              </div>
+              <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '12px', background: task.source === 'Google' ? '#e8d5ff' : '#ffe8d5', color: task.source === 'Google' ? '#6b5b95' : '#c97d5c', fontWeight: '600' }}>{task.source}</span>
+              <div style={{ padding: '6px 14px', borderRadius: '12px', fontSize: '12px', fontWeight: '600', background: task.priority === 'high' ? '#f0d5d5' : task.priority === 'medium' ? '#f5e8d0' : '#d5f0e8', color: task.priority === 'high' ? '#a8795d' : task.priority === 'medium' ? '#c9a870' : '#7db399' }}>{task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}</div>
+              <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ddd', fontSize: '18px', cursor: 'pointer', padding: '4px' }}>✕</button>
             </div>
-          )}
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+FINALEOFcat > ~/agenda-gustavo/src/agenda-dashboard.jsx << 'FINALEOF'
+import React, { useState } from 'react';
+export default function AgendaDashboard() {
+  const [tasks, setTasks] = useState([
+    { id: 1, title: 'Revisión PH Dupont Tower - Nathaly', date: '2026-04-17', time: '09:00', priority: 'high', completed: false, calendar: 'mikaty', source: 'Outlook' },
+    { id: 2, title: 'Reunión con Charlie - Bonavista', date: '2026-04-17', time: '10:00', priority: 'high', completed: false, calendar: 'bonavista', source: 'Google' },
+    { id: 3, title: 'Administración Inversiones Mikaty', date: '2026-04-17', time: '13:00', priority: 'medium', completed: false, calendar: 'mikaty', source: 'Outlook' },
+    { id: 4, title: 'Llamada Héctor', date: '2026-04-17', time: '14:00', priority: 'high', completed: false, calendar: 'bonavista', source: 'Google' },
+  ]);
+  const [formData, setFormData] = useState({ title: '', date: '', time: '', priority: 'medium', calendar: 'bonavista' });
+  const [filter, setFilter] = useState('all');
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (formData.title && formData.date && formData.time) {
+      setTasks([...tasks, { id: Date.now(), ...formData, completed: false, source: 'Manual' }]);
+      setFormData({ title: '', date: '', time: '', priority: 'medium', calendar: 'bonavista' });
+    }
+  };
+  const toggleTask = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
+  const filteredTasks = tasks.filter(t => filter === 'all' || t.calendar === filter);
+  const completedCount = filteredTasks.filter(t => t.completed).length;
+  const totalCount = filteredTasks.length;
+  const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', fontFamily: 'system-ui' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '1rem', color: '#333' }}>Tu Agenda Diaria</h1>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '2rem' }}>
+        {['all', 'bonavista', 'mikaty'].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: '10px 20px', borderRadius: '20px', background: filter === f ? '#e8dff5' : '#fff', border: `2px solid ${filter === f ? '#b8a6ff' : '#e8dff5'}`, color: filter === f ? '#6b5b95' : '#888', cursor: 'pointer', fontWeight: '600' }}>
+            {f === 'all' ? 'Todas' : f === 'bonavista' ? 'Bonavista' : 'Mikaty'}
+          </button>
+        ))}
+      </div>
+      <div style={{ background: 'linear-gradient(135deg, #f0e6ff 0%, #ede5ff 100%)', borderRadius: '28px', padding: '2.5rem', marginBottom: '2.5rem', border: '2px solid #e0d0ff' }}>
+        <h2 style={{ fontSize: '22px', marginBottom: '1.5rem', color: '#6b5b95', fontWeight: '700' }}>➕ Agregar Nueva Tarea</h2>
+        <form onSubmit={handleAddTask} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '14px', alignItems: 'flex-end' }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Tarea</label>
+            <input type="text" placeholder="¿Qué necesitas hacer?" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', padding: '14px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Fecha</label>
+            <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#8b7ba8', fontWeight: '600', display: 'block', marginBottom: '6px' }}>Hora</label>
+            <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '14px', background: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <button type="submit" style={{ padding: '12px 28px', background: '#c4b5e9', color: '#6b5b95', border: 'none', borderRadius: '14px', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>Agregar</button>
+        </form>
+        <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })} style={{ padding: '10px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '13px', background: '#fff' }}>
+            <option value="low">Prioridad: Baja</option>
+            <option value="medium">Prioridad: Media</option>
+            <option value="high">Prioridad: Alta</option>
+          </select>
+          <select value={formData.calendar} onChange={(e) => setFormData({ ...formData, calendar: e.target.value })} style={{ padding: '10px', border: '2px solid #ddd0f0', borderRadius: '14px', fontSize: '13px', background: '#fff' }}>
+            <option value="bonavista">Línea: Bonavista</option>
+            <option value="mikaty">Línea: Mikaty</option>
+          </select>
         </div>
-
-        <div style={{ padding: '1rem', background: 'var(--color-background-secondary)', borderRadius: 'var(--border-radius-md)', marginTop: '2rem' }}>
-          <p style={{ fontSize: '13px', margin: '0 0 8px 0', color: 'var(--color-text-primary)', fontWeight: '500' }}>
-            Próximos pasos:
-          </p>
-          <ul style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0', paddingLeft: '1.2rem', lineHeight: '1.6' }}>
-            <li>✓ Dashboard listo en Vercel</li>
-            <li>✓ Variables de entorno configuradas</li>
-            <li>• Sincronización en tiempo real con OAuth 2.0</li>
-            <li>• Notificaciones automáticas por email/WhatsApp</li>
-          </ul>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ background: '#f0e6ff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e0d0ff' }}>
+          <p style={{ fontSize: '13px', color: '#8b7ba8', margin: '0 0 8px 0', fontWeight: '600' }}>Cumplimiento Hoy</p>
+          <div style={{ fontSize: '40px', fontWeight: 'bold', color: '#8b7ba8', marginBottom: '10px' }}>{completionPercent}%</div>
+          <div style={{ background: '#ddd0f0', height: '8px', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ background: '#c4b5e9', height: '100%', width: `${completionPercent}%` }} />
+          </div>
         </div>
+        <div style={{ background: '#ffe6d5', borderRadius: '20px', padding: '1.5rem', border: '1px solid #ffd4c0' }}>
+          <p style={{ fontSize: '13px', color: '#c97d5c', margin: '0 0 8px 0', fontWeight: '600' }}>Tareas Atrasadas</p>
+          <div style={{ fontSize: '40px', fontWeight: 'bold', color: '#d4825a', marginBottom: '10px' }}>0</div>
+          <p style={{ fontSize: '12px', color: '#c97d5c', margin: '0' }}>Requieren atención</p>
+        </div>
+        <div style={{ background: '#d5f0e8', borderRadius: '20px', padding: '1.5rem', border: '1px solid #c5e8e0' }}>
+          <p style={{ fontSize: '13px', color: '#6b9d88', margin: '0 0 12px 0', fontWeight: '600' }}>Distribución</p>
+          <div style={{ fontSize: '13px', color: '#6b9d88' }}>
+            <div>🔴 Alta: <strong>{tasks.filter(t => t.priority === 'high').length}</strong></div>
+            <div>🟠 Media: <strong>{tasks.filter(t => t.priority === 'medium').length}</strong></div>
+            <div>🟢 Baja: <strong>{tasks.filter(t => t.priority === 'low').length}</strong></div>
+          </div>
+        </div>
+      </div>
+      <div style={{ background: '#fff', borderRadius: '24px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '1.5rem', color: '#333', fontWeight: '700' }}>📅 Tareas & Eventos ({filteredTasks.length})</h2>
+        {filteredTasks.length === 0 ? (
+          <p style={{ color: '#aaa', textAlign: 'center', padding: '3rem', fontSize: '15px' }}>Sin tareas para hoy. ¡Agrega una arriba! ⬆️</p>
+        ) : (
+          filteredTasks.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)).map(task => (
+            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: task.completed ? '#f5f5f5' : '#faf8fc', border: `2px solid ${task.source === 'Google' ? '#e8d5ff' : task.source === 'Outlook' ? '#ffe8d5' : '#e8f0ff'}`, borderRadius: '16px', marginBottom: '12px', opacity: task.completed ? 0.65 : 1 }}>
+              <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: '0', fontSize: '15px', fontWeight: '600', color: '#333', textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#888' }}>🕐 {task.time}</p>
+              </div>
+              <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '12px', background: task.source === 'Google' ? '#e8d5ff' : '#ffe8d5', color: task.source === 'Google' ? '#6b5b95' : '#c97d5c', fontWeight: '600' }}>{task.source}</span>
+              <div style={{ padding: '6px 14px', borderRadius: '12px', fontSize: '12px', fontWeight: '600', background: task.priority === 'high' ? '#f0d5d5' : task.priority === 'medium' ? '#f5e8d0' : '#d5f0e8', color: task.priority === 'high' ? '#a8795d' : task.priority === 'medium' ? '#c9a870' : '#7db399' }}>{task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}</div>
+              <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ddd', fontSize: '18px', cursor: 'pointer', padding: '4px' }}>✕</button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
